@@ -10,6 +10,7 @@ If you want to use a dds file with a different header use an entirely new dds fi
 
 
 # Usage: 
+0. Download the executable for your operating system from the releases (or the python script itself)
 
 1. Make a folder "import", where you place all the fully extracted/modified and new romFS files you want to reimport.
 For existing files make sure to preserve the extractions folder structure, within "import".
