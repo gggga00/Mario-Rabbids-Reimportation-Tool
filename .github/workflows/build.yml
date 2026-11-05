@@ -1,3 +1,4 @@
+
 name: Build executables
 
 on:
@@ -28,11 +29,20 @@ jobs:
         with:
           python-version: "3.15"
 
-      - name: Install PyInstaller
-        run: python -m pip install pyinstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller zstandard
+
+      - name: Verify zstandard
+        run: python -c "import zstandard; print(zstandard.__version__)"
 
       - name: Build executable
-        run: pyinstaller --onefile --name mrkb_sdf_repacker-windows mrkb_sdf_repacker.py
+        run: |
+          python -m PyInstaller --clean --onefile `
+            --collect-all zstandard `
+            --name mrkb_sdf_repacker-windows `
+            mrkb_sdf_repacker.py
 
       - name: Upload build
         uses: actions/upload-artifact@v4
@@ -54,11 +64,20 @@ jobs:
         with:
           python-version: "3.15"
 
-      - name: Install PyInstaller
-        run: python -m pip install pyinstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller zstandard
+
+      - name: Verify zstandard
+        run: python -c "import zstandard; print(zstandard.__version__)"
 
       - name: Build executable
-        run: pyinstaller --onefile --name mrkb_sdf_repacker-linux mrkb_sdf_repacker.py
+        run: |
+          python -m PyInstaller --clean --onefile \
+            --collect-all zstandard \
+            --name mrkb_sdf_repacker-linux \
+            mrkb_sdf_repacker.py
 
       - name: Upload build
         uses: actions/upload-artifact@v4
@@ -80,22 +99,31 @@ jobs:
         with:
           python-version: "3.15"
 
-      - name: Install PyInstaller
-        run: python -m pip install pyinstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller zstandard
+
+      - name: Verify zstandard
+        run: python -c "import zstandard; print(zstandard.__version__)"
 
       - name: Build executable
-        run: pyinstaller --onefile --name mrkb_sdf_repacker-x86_64 mrkb_sdf_repacker.py
+        run: |
+          python -m PyInstaller --clean --onefile \
+            --collect-all zstandard \
+            --name mrkb_sdf_repacker-macos-x86_64 \
+            mrkb_sdf_repacker.py
 
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
           name: macos-intel
-          path: dist/mrkb_sdf_repacker-x86_64
+          path: dist/mrkb_sdf_repacker-macos-x86_64
 
 
   build-macos-arm64:
     name: Build macOS Apple Silicon
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout repository
@@ -106,56 +134,26 @@ jobs:
         with:
           python-version: "3.15"
 
-      - name: Install PyInstaller
-        run: python -m pip install pyinstaller
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller zstandard
+
+      - name: Verify zstandard
+        run: python -c "import zstandard; print(zstandard.__version__)"
 
       - name: Build executable
-        run: pyinstaller --onefile --name mrkb_sdf_repacker-arm64 mrkb_sdf_repacker.py
+        run: |
+          python -m PyInstaller --clean --onefile \
+            --collect-all zstandard \
+            --name mrkb_sdf_repacker-macos-arm64 \
+            mrkb_sdf_repacker.py
 
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
           name: macos-arm64
-          path: dist/mrkb_sdf_repacker-arm64
-
-
-  create-macos-universal:
-    name: Create macOS Universal
-    needs:
-      - build-macos-intel
-      - build-macos-arm64
-    runs-on: macos-14
-
-    steps:
-      - name: Download Intel build
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-intel
-          path: intel
-
-      - name: Download ARM64 build
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-arm64
-          path: arm64
-
-      - name: Create universal binary
-        run: |
-          lipo -create \
-            intel/mrkb_sdf_repacker-x86_64 \
-            arm64/mrkb_sdf_repacker-arm64 \
-            -output mrkb_sdf_repacker-macos
-
-      - name: Verify universal binary
-        run: |
-          file mrkb_sdf_repacker-macos
-          lipo -info mrkb_sdf_repacker-macos
-
-      - name: Upload build
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-universal
-          path: mrkb_sdf_repacker-macos
+          path: dist/mrkb_sdf_repacker-macos-arm64
 
 
   release:
@@ -163,7 +161,9 @@ jobs:
     needs:
       - build-windows
       - build-linux
-      - create-macos-universal
+      - build-macos-intel
+      - build-macos-arm64
+
     runs-on: ubuntu-latest
 
     steps:
@@ -189,10 +189,16 @@ jobs:
           name: linux
           path: release
 
-      - name: Download macOS build
+      - name: Download macOS Intel build
         uses: actions/download-artifact@v4
         with:
-          name: macos-universal
+          name: macos-intel
+          path: release
+
+      - name: Download macOS ARM64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-arm64
           path: release
 
       - name: Show release files
@@ -205,4 +211,5 @@ jobs:
           files: |
             release/mrkb_sdf_repacker-windows.exe
             release/mrkb_sdf_repacker-linux
-            release/mrkb_sdf_repacker-macos
+            release/mrkb_sdf_repacker-macos-x86_64
+            release/mrkb_sdf_repacker-macos-arm64
